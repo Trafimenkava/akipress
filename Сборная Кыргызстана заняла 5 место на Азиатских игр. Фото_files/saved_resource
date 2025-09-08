@@ -1,0 +1,57 @@
+function getCookie(name) {
+    var matches = document.cookie.match(new RegExp(
+      "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ))
+    return matches ? decodeURIComponent(matches[1]) : undefined
+}
+var onlineExists=0;
+String.prototype.online_myurl_encode = function() {
+  var url = this;
+  var replace = /=/g;
+  url=url.replace(replace, "|");
+  var replace = /\?/g;
+  url=url.replace(replace, "(");
+  var replace = /&/g;
+  url=url.replace(replace, ")");
+  return url;
+};
+
+var online_func=function() {
+  (function (d, w) {
+    var o_rf=document.referrer;
+    var o_url=window.location.href;
+    var o_aoabt=0;
+    var o_lang="ru-KG";
+      if(document.documentElement.lang!='') o_lang = document.documentElement.lang;
+
+    if(typeof window.aoabt !== 'undefined') {
+      var o_temp=window.aoabt+'';
+      o_temp=o_temp.split('_');
+       if(getCookie(o_temp[0])!=='undefined'){o_aoabt=window.aoabt;}
+    }
+    var a=[
+      //"tit="+encodeURIComponent(document.title),
+      "dat="+Math.floor(Date.now() / 1000),
+      "ss="+screen.width+"x"+screen.height,
+      "ws="+window.outerWidth+"x"+window.outerHeight,
+      "url="+o_url.online_myurl_encode(),
+      "rf="+o_rf.online_myurl_encode(),
+      "lang="+o_lang,
+      "aoabt="+o_aoabt
+    ];
+    var i = d.createElement("img");
+    i.src = (d.location.protocol == "https:" ? "https:" : "http:") + "//online.akipress.org/counter/?"+a.join('&');
+    i.setAttribute("id","online_counter");
+    i.style.cssText='position: fixed;right:0;bottom:0;width:0;height:0;';
+    var f = function () { document.body.appendChild(i); };
+    if (w.opera == "[object Opera]") {
+        d.addEventListener("DOMContentLoaded", f, false);
+    } else {
+        f();
+    }
+
+  document.cookie ='AO_TOKEN=ea6b9b64117d248eb0857c5b468e23f0; expires=Fri, 05 Sep 2025 14:02:20 +0600;SameSite=None; Secure; path=/';document.cookie ='ao_li=3fc470f6a0cd16c7edf24b4dde369376;SameSite=None;Secure; expires=Sat, 05 Sep 2026 13:47:20 +0600; path=/';  })(document, window);
+};
+if( document.readyState !== 'loading' ) {online_func();}
+else {document.addEventListener('DOMContentLoaded', function () {online_func();});
+}

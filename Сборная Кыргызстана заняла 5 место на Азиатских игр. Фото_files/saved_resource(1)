@@ -1,0 +1,448 @@
+<!--<script>-->
+function hasClass(element, cls) {
+return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+}
+function getXMLHttpRequest() {
+if (window.XMLHttpRequest) {
+	return new XMLHttpRequest();
+}
+return null;
+}
+function getUnixTs() {
+if (!Date.now) {
+	Date.now = function() { return new Date().getTime(); }
+}
+return Date.now() / 1000 | 0;
+}
+function createCookie(name,value,hours,domain) {
+var expires = "";
+if (hours) {
+	var date = new Date();
+	//date.setTime(date.getTime()+(days*24*60*60*1000));
+	date.setTime(date.getTime()+(hours*60*60*1000));
+	expires = "; expires="+date.toGMTString();
+}
+var cookieDomain = "akipress.org";
+if(domain) {
+	cookieDomain = domain;
+}
+document.cookie = name+"="+value+expires+"; path=/; domain=."+cookieDomain;
+}
+function readCookie(name) {
+var nameEQ = name + "=";
+var ca = document.cookie.split(';');
+for(var i=0;i < ca.length;i++) {
+	var c = ca[i];
+	while (c.charAt(0)==' ') c = c.substring(1,c.length);
+	if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+}
+return null;
+}
+function getStyle(el, styleProp) {
+var value, defaultView = (el.ownerDocument || document).defaultView;
+if (defaultView && defaultView.getComputedStyle) {
+styleProp = styleProp.replace(/([A-Z])/g, "-$1").toLowerCase();
+return defaultView.getComputedStyle(el, null).getPropertyValue(styleProp);
+} else if (el.currentStyle) {
+styleProp = styleProp.replace(/\-(\w)/g, function(str, letter) {
+	return letter.toUpperCase();
+});
+value = el.currentStyle[styleProp];
+if (/^\d+(em|pt|%|ex)?$/i.test(value)) {
+	return (function(value) {
+		var oldLeft = el.style.left, oldRsLeft = el.runtimeStyle.left;
+		el.runtimeStyle.left = el.currentStyle.left;
+		el.style.left = value || 0;
+		value = el.style.pixelLeft + "px";
+		el.style.left = oldLeft;
+		el.runtimeStyle.left = oldRsLeft;
+		return value;
+	})(value);
+}
+return value;
+}
+}
+function eraseCookie(name) {createCookie(name,"",-1);}
+var nativeAdVidBlock;
+(function() {
+function sendShowedInf(time) {
+if(f || sendingNativeAdInfo || demo || (!hasCode && nativeAdVidBlock.offsetHeight == 0)) {
+	return false;
+}
+if(!hasCode && time>0 && (!enableWatch || !nativeAdVolumeUp)) {
+	return false;
+}
+var xmlhttp = getXMLHttpRequest();
+if(xmlhttp !== null) {
+sendingNativeAdInfo = true;
+xmlhttp.onreadystatechange = function() {
+	if(xmlhttp.readyState == XMLHttpRequest.DONE ) {
+		if(xmlhttp.status == 200){
+			var jsonResponse = false;
+			try {
+				jsonResponse = JSON.parse(xmlhttp.responseText);
+			} catch(e) {
+				console.log("Ad Error");
+			}
+			if(jsonResponse !== false && jsonResponse.accepted === true) {
+				if(!time) {
+					//createCookie("aki_n_a_v_i_d",nativeAdB,1,projectName);
+					createCookie("aki_n_a_v_i_d",nativeShowedIds,1,projectName);
+				}
+				enableWatch = true;
+			}
+			sendingNativeAdInfo = false;
+		} else if(xmlhttp.status == 400) {
+			console.log("Error when sending native ad info...");
+		}
+	}
+};
+xmlhttp.open("POST", location.protocol+"//bulbul.kg/native_ad", true);
+xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+var xtraParams = '';
+if(time>0) {
+	xtraParams = '&duration='+time;
+}
+var refUrl = [location.protocol, '//', location.host, location.pathname].join('');//location.href
+xmlhttp.send("lt="+nativeAdLoadTime+"&st="+getUnixTs()+"&nadid="+nativeAdId+"&nadh="+encodeURIComponent(location.host)+"&pid="+projectCode+"&nadr="+encodeURIComponent(refUrl)+xtraParams);
+}
+}
+function setAdUrl() {
+    if(!hasClass(nativeAdLink,"aki-native-ad-url-activated")) {
+        nativeAdLink.className += " aki-native-ad-url-activated";
+        nativeAdLink.href = nativeAdUrl;
+    }
+}
+function isElementInViewport (el) {
+//special bonus for those using jQuery
+if (typeof jQuery === "function" && el instanceof jQuery) {
+	el = el[0];
+}
+
+var rect = el.getBoundingClientRect();
+var elBottom = rect.bottom + ((nativeAdHeight/2)+nativeAdHeight/4);
+return (
+rect.top >= 0 &&
+rect.left >= 0 &&
+elBottom <= (window.innerHeight || document.documentElement.clientHeight) && /*or $(window).height() */
+rect.right <= (window.innerWidth || document.documentElement.clientWidth) /*or $(window).width() */
+);
+}
+function onVisibilityChange(el, callback) {
+return function() {
+if(isElementInViewport(el)) {
+if(nativeAdEnded) {
+	return false;
+}
+if(hasClass(nativeAdBlock,"aki-native-ad-hidden")) {
+	var canSendInf = false;
+	nativeAdBlock.className = nativeAdBlock.className.replace(/(?:^|\s)aki-native-ad-hidden(?!\S)/g, "");
+	if(!hasCode && typeof nativeAdVidBlock !== 'undefined' && nativeAdVidBlock.paused == true) {
+		nativeAdVidBlock.play();
+		canSendInf = true;
+		inOrOutVolume(1);
+	}
+	if(hasCode || canSendInf) {
+		sendShowedInf();
+	}
+	setAdUrl();
+}
+}
+};
+}
+function onCanPlay() {
+nativeAdVidBlock.removeEventListener('canplaythrough', onCanPlay, false);
+nativeAdVidBlock.removeEventListener('load', onCanPlay, false);
+nativeAdVidBlock.play();
+}
+function insertAfter(newNode, referenceNode) {
+	referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
+}
+function minimizeNativeBlock() {
+nativeAdEnded = true;
+if (!hasClass(nativeAdBlock, "aki-native-ad-played") && !unwrap) {
+	nativeAdBlock.className += " aki-native-ad-played";
+	sendShowedInf(parseInt(nativeAdVidBlock.currentTime));
+}
+nativeAdVidBlock.volume = 0;
+}
+var nativeAdId = 0;
+var nativeShowedIds = '';
+var nativeAdUrl = '';
+var destinationElem = 'news_body';
+var nativeAdLoadTime = getUnixTs();
+var sendingNativeAdInfo = false;
+var enableWatch = false;
+var projectName = 'akipress.org';
+var projectCode = parseInt('5');
+var projectAttr = '["sport.akipress.org\/news","1992344\/"]';
+var forceRewrite = parseInt('0');
+var f = parseInt('0');
+var mobile = parseInt('0');
+var onlyOnMobile = parseInt('0');
+var onlyOnDesktop = parseInt('0');
+var unwrap = parseInt('0');
+var loop = parseInt('0');
+var adWidth = parseInt('0');
+var adHeight = parseInt('0');
+var nativeAdEnded = false;
+if((mobile && onlyOnMobile || !onlyOnMobile && !onlyOnDesktop || !mobile && onlyOnDesktop) && nativeAdId>0) {
+var newsText = document.getElementById(destinationElem);
+if(newsText !== null) {
+var newsParagraphs = newsText.getElementsByTagName("p");
+var destinationCont = newsText;
+var forceNative = newsText.getElementsByClassName("force-native");
+var forceInsert = false;
+var allTd = false;
+var demo = parseInt('0');
+var hasCode = parseInt('0');
+var hasBanner = parseInt('0');
+var hasHTML = parseInt('0');
+var nativeCode = '';
+var flashCode = '';
+var hasFlashCode = parseInt('0');
+var noTarget = parseInt('0');
+var foundDestination = false;
+if(typeof(forceNative) != 'undefined' && forceNative != null && forceNative.length > 0) {
+	destinationCont = forceNative[0];
+	forceInsert = true;
+} else if(newsParagraphs.length>2) {
+var newsP;
+var leftThumb = newsText.getElementsByClassName("photoin");
+var startPos = 1;
+if(leftThumb.length > 0) {
+startPos = newsParagraphs.length-1;
+if(newsParagraphs.length>3) {
+	startPos = 3;
+}
+}
+var imgs;
+var float;
+for(var i = startPos; i < newsParagraphs.length; i++) {
+newsP = newsParagraphs[i];
+if(newsP.getElementsByTagName("TABLE").length == 0) {
+	if(newsP.getElementsByTagName("IMG").length > 0) {
+		imgs = newsP.getElementsByTagName("IMG");
+		float = getStyle(imgs[0], "float");
+		if(float == "left" || float == "right") {
+			continue;
+		}
+	} else if(newsP.parentNode.tagName == "TD") {
+		continue;
+	}
+	destinationCont = newsP;
+	foundDestination = true;
+	break;
+}
+}
+if(!foundDestination) {
+var textAlign = getStyle(destinationCont, "text-align");
+float = getStyle(destinationCont, "float");
+if (textAlign == "right" || float == "left" || float == "right") {
+	for (var j = 2; j < (newsParagraphs.length - 3); j++) {
+		destinationCont = newsParagraphs[j];
+		textAlign = getStyle(destinationCont, "text-align");
+		float = getStyle(destinationCont, "float");
+		allTd = true;
+		if (textAlign != "right" && float != "left" && float != "right") {
+			allTd = false;
+			break;
+		}
+	}
+}
+}
+}
+var topicLinksLeft = newsText.getElementsByClassName("link2otherleft");
+var topicLinksRight = newsText.getElementsByClassName("link2otherright");
+if(!foundDestination && (topicLinksLeft.length > 0 || topicLinksRight.length > 0 || allTd || newsText.getElementsByTagName("BLOCKQUOTE").length > 0)) {// || projectCode == 5
+	destinationCont = newsText;
+}
+var maxWidth = newsText.offsetWidth;
+var nativeAdWidth = adWidth>0?adWidth:640;
+var nativeAdHeight = adHeight>0?adHeight:360;
+//var aspectRatio = 1.7777777777777777;
+var aspectRatio = nativeAdWidth/nativeAdHeight;
+if(maxWidth > 0 && maxWidth<nativeAdWidth) {
+	nativeAdWidth = maxWidth;
+	nativeAdHeight = parseInt(maxWidth/aspectRatio);
+}
+var nativeVidAdContent = '';
+if(hasCode === 1) {
+	if(hasBanner === 1) {
+        var styleWidth = !hasHTML?'width:' + nativeAdWidth + 'px;height:' + nativeAdHeight + 'px;':'';
+		nativeCode = '<div class="aki-native-ad-title" style="'+(hasHTML?'display:none !important;':'')+'"><a href="//reklama.akipress.org/?from=native_ad" target="_blank" title="Реклама на АКИpress">Реклама</a></div><div id="banner-code-block" style="'+styleWidth+'" class="'+(hasHTML?'html-code-banner':'')+'">'+nativeCode+'</div><a '+(!noTarget?'target="_blank"':'')+' href="javascript:void(0);" role="button" id="aki_native_ad_link" class="aki-native-ad-link"></a>';
+	}
+	nativeVidAdContent = '<div id="aki_native_ad_block" class="aki-native-ad aki-native-ad-hidden"><!--googleoff: all--><noindex>'+nativeCode+'</noindex><!--googleon: all--></div>';
+} else {
+	var nativeVidAdPath = location.protocol+'//bulbul.kg/mp4/ad/'+(nativeAdId%10)+'/'+nativeAdId+'.mp4';
+	var nativeVidAdPosterPath = location.protocol+'//bulbul.kg/img/ad/'+(nativeAdId%10)+'/'+nativeAdId+'.1.640.jpg';
+	nativeVidAdContent = '<div id="aki_native_ad_block" class="aki-native-ad aki-native-ad-hidden"><!--googleoff: all--><noindex><div class="aki-native-ad-title"><a href="https://reklama.akipress.org/?from=native_ad" target="_blank" title="Реклама на АКИpress">Реклама</a></div><video muted="1" class="aki-native-ad-vid" id="aki_native_ad_' + nativeAdId + '" width="' + nativeAdWidth + '" height="' + nativeAdHeight + '" poster="' + nativeVidAdPosterPath + '" x-webkit-airplay="allow" preload="auto"'+(loop?' loop':'')+'><source src="' + nativeVidAdPath + '" type="video/mp4"/></video><div id="aki_native_ad_progress_play" class="aki-native-ad-progress-play"></div><a '+(!noTarget?'target="_blank"':'')+' href="javascript:void(0);" role="button" id="aki_native_ad_link" class="aki-native-ad-link" onclick="fadeOutVolume();"></a><div id="aki_native_ad_volume_indicator" class="aki-native-ad-volume-indicator aki-native-ad-volume-off"></div></noindex><!--googleon: all--></div>';
+}
+if(!forceInsert) {
+	destinationCont.innerHTML += nativeVidAdContent;
+} else {
+	var newNativeVidAdBlock = document.createElement("span");
+	newNativeVidAdBlock.innerHTML = nativeVidAdContent;
+	insertAfter(newNativeVidAdBlock, destinationCont);
+}
+var bannerCode;
+if(hasBanner === 1) {
+	bannerCode = document.getElementById("banner-code");
+	if(hasFlashCode) {
+		var hasFlash = false;
+		try {
+			hasFlash = Boolean(new ActiveXObject("ShockwaveFlash.ShockwaveFlash"));
+		} catch(exception) {
+			hasFlash = ("undefined" != typeof navigator.mimeTypes["application/x-shockwave-flash"]);
+		}
+		if(hasFlash) {
+			bannerCode.innerHTML = flashCode;
+		}
+	} else if(hasHTML) {
+		bannerCode.innerHTML = "";
+	}
+}
+var nativeAdBlock = document.getElementById("aki_native_ad_block");
+var top = window.pageYOffset || document.documentElement.scrollTop, left = window.pageYOffset || document.documentElement.scrollLeft;
+var nativeAdBlockTop = nativeAdBlock.offsetTop || nativeAdBlock.scrollTop;
+var nativeAdVisiblePosition = parseInt(nativeAdBlockTop + ((nativeAdHeight / 2) + nativeAdHeight / 4));
+var documentWidth = (newsText.innerWidth > 0) ? newsText.innerWidth : newsText.clientWidth;
+var documentHeight = (window.innerHeight > 0) ? window.innerHeight : document.body.clientHeight;
+var scrollVisiblePosition = documentHeight + top;
+var volumeIndicator = document.getElementById("aki_native_ad_volume_indicator");
+var progressPlayed = document.getElementById("aki_native_ad_progress_play");
+var nativeAdVidHandler = onVisibilityChange(nativeAdBlock, false);
+if (window.addEventListener) {
+	addEventListener('DOMContentLoaded', nativeAdVidHandler, false);
+	addEventListener('load', nativeAdVidHandler, false);
+	addEventListener('scroll', nativeAdVidHandler, false);
+	addEventListener('resize', nativeAdVidHandler, false);
+} else if (window.attachEvent) {
+	attachEvent('onDOMContentLoaded', nativeAdVidHandler); // IE9+ :(
+	attachEvent('onload', nativeAdVidHandler);
+	attachEvent('onscroll', nativeAdVidHandler);
+	attachEvent('onresize', nativeAdVidHandler);
+}
+if(!hasCode || hasBanner) {
+var nativeAdLink = document.getElementById("aki_native_ad_link");
+if(!hasHTML) {
+    nativeAdLink.setAttribute("style", "width:" + nativeAdWidth + "px;height:" + nativeAdHeight + "px");
+}
+nativeAdLink.addEventListener("click", function () {
+if (!unwrap && !hasClass(this, "aki-native-ad-clicked")) {
+	var thisEl = this;
+	setTimeout(function () {
+		thisEl.href = "javascript:;";
+		thisEl.style.cursor = "default";
+		thisEl.className += " aki-native-ad-clicked";
+		thisEl.removeAttribute("target");
+		if(!hasCode) {
+			nativeAdVidBlock.play();
+		}
+		if (mobile || hasBanner) {
+		    if(hasHTML) {
+		        nativeAdBlock.parentNode.removeChild(nativeAdBlock);
+            } else {
+		        nativeAdLink.parentNode.removeChild(nativeAdLink);
+            }
+		}
+	}, 200);
+} else {
+	if(!hasCode) {
+		nativeAdVidBlock.play();
+	}
+	return false;
+}
+});
+}
+if(!hasCode) {
+nativeAdVidBlock = document.getElementById("aki_native_ad_" + nativeAdId);
+//nativeAdVidBlock.src = nativeVidAdPath;
+//nativeAdVidBlock.load();
+nativeAdVidBlock.volume = 0;
+if(mobile) {
+nativeAdVidBlock.volume = 0.2;
+}
+var progressPlayWidth = 0;
+if(!mobile) {
+nativeAdVidBlock.addEventListener("timeupdate", function () {
+	progressPlayWidth = parseInt(nativeAdVidBlock.currentTime * (nativeAdWidth / nativeAdVidBlock.duration));
+	if (progressPlayWidth > nativeAdWidth) {
+		progressPlayWidth = nativeAdWidth;
+	}
+	progressPlayed.setAttribute("style", "width:" + progressPlayWidth + "px");
+});
+}
+nativeAdVidBlock.addEventListener("ended", function () {
+	minimizeNativeBlock();
+});
+nativeAdVidBlock.addEventListener("click", function () {
+	if (nativeAdVidBlock.paused == true) {
+		nativeAdVidBlock.play();
+	}
+	inOrOutVolume(hasClass(volumeIndicator,"aki-native-ad-volume-on"));
+});
+nativeAdBlock.addEventListener("mouseover", function(){inOrOutVolume(0)});
+nativeAdBlock.addEventListener("mouseout", function(){inOrOutVolume(1)});
+currNativeAdVidVolume = nativeAdVidBlock.volume * 100;
+volumeIndicator.addEventListener("click", function(){
+	if(nativeAdVidBlock.muted){
+		nativeAdVidBlock.muted = false;
+	}
+	inOrOutVolume(hasClass(volumeIndicator,"aki-native-ad-volume-on"))
+});
+var loopCloseBtn = document.getElementById("aki-native-ad-close");
+if(loopCloseBtn!=null){loopCloseBtn.addEventListener("click", function (e) {minimizeNativeBlock();e.preventDefault();e.stopPropagation();return false;});}
+}
+if(projectCode == 5) {
+	nativeAdBlock.style.clear = 'left';
+}
+
+}//if(newsText !== null) {
+
+} else {
+	if(forceRewrite>0) {createCookie("aki_n_a_v_i_d",nativeShowedIds,1,projectName);}
+}
+function inOrOutVolume(inOrOut) {
+if(nativeAdEnded || nativeAdVidBlock.muted) {
+	return false;
+}
+if(!inOrOut) {
+	stopFadeIn = false;
+	fadeInVolume();
+	volumeIndicator.className = volumeIndicator.className.replace(/(?:^|\s)aki-native-ad-volume-off(?!\S)/g, " aki-native-ad-volume-on");
+} else {
+	stopFadeIn = true;
+	fadeOutVolume();
+	volumeIndicator.className = volumeIndicator.className.replace(/(?:^|\s)aki-native-ad-volume-on(?!\S)/g, " aki-native-ad-volume-off");
+}
+}
+})();
+var stopFadeIn = false;
+var currNativeAdVidVolume;
+var nativeAdVolumeUp = false;
+function fadeInVolume() {
+if(currNativeAdVidVolume < 20 && !nativeAdVolumeUp && !stopFadeIn) {
+	currNativeAdVidVolume += 5;
+	nativeAdVidBlock.volume = currNativeAdVidVolume/100;
+	setTimeout(function(){fadeInVolume()}, 200);
+} else {
+	nativeAdVolumeUp = true;
+}
+}
+function fadeOutVolume() {
+if(currNativeAdVidVolume > 0) {
+	if(!nativeAdVolumeUp) {
+		nativeAdVolumeUp = true;
+	}
+	currNativeAdVidVolume -= 5;
+	if(currNativeAdVidVolume < 0) {
+		currNativeAdVidVolume = 0;
+	}
+	nativeAdVidBlock.volume = currNativeAdVidVolume/100;
+	setTimeout(function(){fadeOutVolume()}, 100);
+} else {
+	nativeAdVolumeUp = false;
+}
+}
+<!--</script>-->

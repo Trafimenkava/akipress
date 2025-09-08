@@ -1,0 +1,166 @@
+:root {
+    --clr-ok: #01776e;
+    --clr-er: #fd4959;
+}
+#authme-main *,
+[data-authforms] * {
+    box-sizing: border-box;
+}
+#authme-main {
+    height: 100vh;
+    display: none;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 200;
+}
+body[authembed] #authme-main {
+    background: rgba(0, 0, 0, 0.2);
+}
+.authme-active {
+    display: flex !important;
+}
+#authme-main .sections,
+[data-authforms] section {
+    width: 400px;
+    background: #fff;
+    margin-left: -200px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: absolute;
+    left: 50%;
+    box-shadow: 0 0 3px 0 rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    transform: scaleY(0);
+    z-index: 201;
+    border-radius: 3px;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+[data-authforms="embed"] section {
+    position: relative;
+    z-index: auto;
+    display: none;
+}
+[data-authforms="embed"] section.active {
+    display: block;
+}
+#authme-main .contents,
+#authme-main .answers,
+[data-authforms] .contents,
+[data-authforms] .answers {
+    padding: 1em 1.5em;
+    overflow: hidden;
+}
+#authme-main .answers {
+    text-align: center;
+    font-size: 1.2em;
+    display: none;
+}
+[data-authforms] .active,
+#authme-main .active {
+    transition: all 0.3s ease;
+    opacity: 1;
+    transform: scaleY(1);
+    z-index: 202;
+}
+#authme-main .sections > h2,
+[data-authforms] .sections > h2 {
+    padding: 0.5em 0 0.3em 0;
+    margin: 0;
+    /* 	font-size: 1.1em; */
+    text-align: center;
+    background: #f3f3f3;
+    border-bottom: 1px solid #cfcfcf;
+}
+#authme-main .sections form,
+[data-authforms] .sections form {
+    padding: 0 0.3em;
+    margin: 0;
+    overflow: hidden;
+}
+#authme-main .sections INPUT[type="text"],
+#authme-main .sections INPUT[type="password"],
+[data-authforms] .sections INPUT[type="text"],
+[data-authforms] .sections INPUT[type="password"] {
+    border: 1px solid #ddd;
+    width: 100%;
+    margin: 0.7em 0;
+    padding: 0.4em;
+}
+[data-authfor] .sections INPUT[type="text"]:focus,
+[data-authfor] .sections INPUT[type="password"]:focus,
+#authme-main .sections INPUT[type="text"]:focus,
+#authme-main .sections INPUT[type="password"]:focus {
+    box-shadow: 0 0 3px 0 royalblue;
+}
+[data-authforms] .sections INPUT[type="text"].errin,
+[data-authforms] .sections INPUT[type="password"].errin,
+#authme-main .sections INPUT[type="text"].errin,
+#authme-main .sections INPUT[type="password"].errin {
+    box-shadow: 0 0 5px 0 var(--clr-er);
+}
+#authme-main .sections INPUT[type="submit"],
+[data-authforms] .sections INPUT[type="submit"] {
+    border: 1px solid #ddd;
+    width: 40%;
+    float: right;
+    padding: 0.2em;
+    margin-top: 0.8em;
+    cursor: pointer;
+}
+#authme-main .sections INPUT[type="submit"]:hover {
+    background: #ddd;
+}
+#authme-main .info,
+[data-authforms] .info {
+    text-align: right;
+    color: #888;
+    margin: 1em 0;
+}
+#authme-main .info P,
+[data-authforms] .info P {
+    padding: 0;
+    margin: 0.3em;
+}
+#authme-main .info A,
+[data-authforms] .info A {
+    color: #44f;
+    text-decoration: none;
+}
+#authme-main label {
+    cursor: pointer;
+}
+
+@media only screen and (max-width: 1000px) {
+    #authme-main .sections {
+        top: 1em;
+        width: 80%;
+        margin-left: -40%;
+    }
+    /*
+    #authme-main {
+        font-size: 3em;
+    }
+    #authme-main input {
+        font-size: .9em;
+    }
+    */
+}
+body.openauthmodal {
+    overflow: hidden;
+}
+#authme-main iframe.regen,
+[data-authforms] iframe.regen {
+    width: 1px;
+    height: 1px;
+    border: none;
+    visibility: hidden;
+}

@@ -1,0 +1,89 @@
+//after news load
+$(document).ready(function(){
+    const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+        if (mutation.type === "childList") {
+            mutation.addedNodes.forEach(node=>{
+                let elem = $(node);
+                let attr = elem.attr('data-news-id');
+                if (typeof attr !== 'undefined' && attr !== false) {
+                    
+                    // -- reporter
+                    adaptEmbeds('.article-text-'+elem.data("news-id"),$('#article_text').innerWidth(),$('.tablet-menu').is(":hidden"));
+                    // --
+                    
+                    // -- tazabek
+                    elem.find('table:not(\".image2right, .image2left, .news_contin_table\")').wrap('<div class=\"table-responsive\"></div>');
+                    elem.find(".table-responsive table").each(function () {
+                        $(this).find("td").removeAttr("width");
+                        if ($(this).outerWidth() > 600) {
+                            $("<a>", {"class": "leanModal", html: "На полный экран", href: "javascript:void();"}).insertBefore($(this));
+                        }
+                    });
+                    // --
+                }
+            })
+        }
+    }
+});
+observer.observe(document.getElementsByClassName("scroll-load-section")[0],{attributes: true, childList: true, subtree: true}); 
+  
+});
+  
+function adaptEmbeds(el, adaptWidth, tabletMenuHidd) {
+      var embeddedIframes = $(el+' iframe');
+      var embeddedObj = $(el+' object,'+el+' embed');
+      if(embeddedIframes.length > 0) {
+          var embeddedIframeEl;
+          var aspRati = 1.7777777777777777;
+          var articleBodyWidth = adaptWidth;
+          if(articleBodyWidth > $(window).width()) {
+              articleBodyWidth = $(window).width() - 16;
+          }
+          for(var i = 0; i < embeddedIframes.length; i++) {
+              embeddedIframeEl = $(embeddedIframes[i]);
+              if(embeddedIframeEl.attr("src").indexOf("bulbul.kg") >= 0) {
+                  if(!embeddedIframeEl.parent().is("P") || embeddedIframeEl.next().is("IFRAME")) {
+                      embeddedIframeEl.wrap('<p></p>');
+                      embeddedIframeEl.wrap('<div class="video-wrapper"></div>');
+                  } else if(!embeddedIframeEl.parent().hasClass("video-wrapper")) {
+                      embeddedIframeEl.wrap('<div class="video-wrapper"></div>');
+                  }
+                  if(tabletMenuHidd) {
+                      embeddedIframeEl.attr("width", articleBodyWidth);
+                      embeddedIframeEl.attr("height", parseInt(articleBodyWidth / aspRati));
+                      //embeddedIframeEl.attr("src", embeddedIframeEl.attr("src"));
+                  }
+              } else if(embeddedIframeEl.attr("src").indexOf("facebook.com") >= 0) {//Facebook embed
+                  if(!embeddedIframeEl.parent().is("P") || embeddedIframeEl.next().is("IFRAME")) {
+                      embeddedIframeEl.wrap('<p></p>');
+                  }
+                  if(tabletMenuHidd) {
+                      var fW = embeddedIframeEl.width();
+                      var fH = embeddedIframeEl.height();
+                      var fAspRatio = fH > fW ? fH/fW : fW / fH; 
+                      if(fH>fW) {
+                          if(fW > articleBodyWidth) {
+                              fW = articleBodyWidth;
+                          }
+                          if(fAspRatio > aspRati) {
+                              fAspRatio = aspRati;
+                          }
+                          embeddedIframeEl.attr("width", fW);
+                          embeddedIframeEl.attr("height", parseInt(fW * fAspRatio));
+                      } else if(fW >= fH && fW > articleBodyWidth) {
+                          fW = articleBodyWidth;
+                          if(fAspRatio >= 1.1 && embeddedIframeEl.attr("src").indexOf("video.php") !== -1) {
+                              fAspRatio = aspRati;
+                          }
+                          embeddedIframeEl.attr("width", fW);
+                          embeddedIframeEl.attr("height", parseInt(fW / fAspRatio));
+                      }
+                  }
+              }
+          }
+      }
+      if(embeddedObj.length > 0) {
+          embeddedObj.wrap('<div class="video-wrapper"></div>');
+      }
+}

@@ -1,0 +1,151 @@
+$(document).ready(function () {
+    $("<script src='/uiall-js/hammer.min.js'></script>").insertBefore($("script[src='/uiall-js/fullNav.js']"));
+  
+    var leftFullNavBtn;
+    var leftFullNavBtnClose;
+    
+    var rightFullNavBtn;
+    var rightFullNavBtnClose;
+  
+    var leftFullNavTpl = false;
+    var rightFullNavTpl = false;
+    var leftNavOpened = false;
+    var rightNavOpened = false;
+  
+    if ($(".m-left-fullnav-btn").length > 0)
+      leftFullNavBtn = $(".m-left-fullnav-btn");
+    if ($(".m-left-fullnav-close-btn").length > 0)
+      leftFullNavBtnClose = $(".m-left-fullnav-close-btn");
+  
+    if ($(".m-right-fullnav-btn").length > 0)
+      rightFullNavBtn = $(".m-right-fullnav-btn");
+    if ($(".m-right-fullnav-close-btn").length > 0)
+      rightFullNavBtnClose = $(".m-right-fullnav-close-btn");
+  
+    if ($(".m-left-fullnav").length > 0) leftFullNavTpl = true;
+    if ($(".m-right-fullnav").length > 0) rightFullNavTpl = true;
+  
+    let toMove = 0;
+    let overlayElem = $("<div class='bg_overlay'/>");
+  
+    overlayElem.css({
+      "background-color": "rgba(0, 0, 0, 0.7)",
+      position: "fixed",
+      top: "0",
+      left: "0",
+      right: "0",
+      bottom: "0",
+      width: "100%",
+      height: "100%",
+      "z-index": "20",
+    });
+    overlayElem.hide();
+    $("body").append(overlayElem);
+  
+    function openFullNav(side) {
+      overlayElem.show();
+      var elem = side == "left" ? $(".m-left-fullnav") : $(".m-right-fullnav");
+      if (side == "left" && rightNavOpened) {
+        closeFullNav("right");
+      } else if (side == "right" && leftNavOpened) {
+        closeFullNav("left");
+      }
+  
+      toMove = elem.outerWidth();
+      let slideAnimeProps = {};
+      slideAnimeProps[side === "right" ? "right" : "left"] = 0;
+  
+      elem.animate(slideAnimeProps, 150, () => {
+        if (side == "left") {
+          leftNavOpened = true;
+          if (leftFullNavBtnClose) {
+            leftFullNavBtn.hide();
+            leftFullNavBtnClose.show();
+          }
+        } else {
+          rightNavOpened = true;
+          if (rightFullNavBtnClose) {
+            rightFullNavBtn.hide();
+            rightFullNavBtnClose.show();
+          }
+        }
+        $("body").css("overflow", "hidden");
+      });
+    }
+  
+    function closeFullNav(side) {
+      var elem = side == "left" ? $(".m-left-fullnav") : $(".m-right-fullnav");
+      let slideAnimeProps = {};
+      slideAnimeProps[side === "right" ? "right" : "left"] = "-" + toMove;
+      $(elem).animate(slideAnimeProps, 150, () => {
+        if (side == "left") {
+          leftNavOpened = false;
+          if (leftFullNavBtnClose) {
+            leftFullNavBtnClose.hide();
+            leftFullNavBtn.show();
+          }
+        } else {
+          rightNavOpened = false;
+          if (rightFullNavBtnClose) {
+            rightFullNavBtnClose.hide();
+            rightFullNavBtn.show();
+          }
+        }
+        $("body").css("overflow", "auto");
+        overlayElem.hide();
+      });
+    }
+  
+    if (leftFullNavTpl) {
+      leftFullNav = new Hammer(
+        document.getElementsByClassName("m-left-fullnav")[0]
+      );
+      leftFullNav.get("swipe").set({ threshold: 100 });
+      leftFullNav.on("swipeleft", function (event) {
+        closeFullNav("left");
+      });
+    }
+  
+    if (rightFullNavTpl) {
+      rightFullNav = new Hammer(
+        document.getElementsByClassName("m-right-fullnav")[0]
+      );
+      rightFullNav.get("swipe").set({ threshold: 100 });
+      rightFullNav.on("swiperight", function (event) {
+        closeFullNav("right");
+      });
+    }
+  
+    if (leftFullNavBtn) {
+      leftFullNavBtn.click(function () {
+        openFullNav("left");
+      });
+    }
+  
+    if (leftFullNavBtnClose) {
+      leftFullNavBtnClose.click(function () {
+        closeFullNav("left");
+      });
+    }
+  
+    if (rightFullNavBtn) {
+      rightFullNavBtn.click(function () {
+        openFullNav("right");
+      });
+    }
+  
+    if (rightFullNavBtnClose) {
+      rightFullNavBtnClose.click(function () {
+        closeFullNav("right");
+      });
+    }
+  
+    if (overlayElem) {
+      overlayElem.click(function () {
+        $('.overlayElemActive').removeClass("overlayElemActive");
+        let side = leftNavOpened ? "left" : "right";
+        closeFullNav(side);
+      });
+    }
+  });
+  

@@ -1,0 +1,375 @@
+document.addEventListener("DOMContentLoaded", () => {
+    const APIKEY = "2e1b705c-de6e-6306-f44b5d989d90f28f";
+
+    async function getasyncdata(uri, formdata, retfunc) {
+        const requestHeader = new Headers();
+        requestHeader.append("apikey", APIKEY);
+
+        let data = new FormData();
+        if (formdata) Object.keys(formdata).forEach((k) => data.append(k, formdata[k]));
+
+        let res = await fetch(uri, { method: "POST", headers: requestHeader, body: data });
+        const result = await res.json();
+
+        if (typeof retfunc === "function") retfunc(result);
+    }
+
+    let d = document;
+    let authmodal = d.getElementById("authme-main");
+    let allauthforms = d.querySelectorAll("[data-authforms]");
+    let sections = d.querySelectorAll("section.sections");
+    let answer = d.getElementById("answer-section");
+    let dbody = d.body;
+    let opensections = [];
+    sections.forEach((item) => opensections.push(item.getAttribute("id").split("-")[0]));
+    let openauthmodal = false;
+    let embedauthmodal = dbody.hasAttribute("authembed");
+    authmodal.style.zIndex = getMaxZIndex() + 1;
+    function authmodal_open(to, inner = {}) {
+        let tosection = d.getElementById(to);
+        if (!openauthmodal) {
+            openauthmodal = true;
+            authmodal.classList.add("authme-active");
+        }
+        sections.forEach((item) => item.classList.remove("active"));
+        setTimeout(() => tosection.classList.add("active"), 20);
+        dbody.classList.add("openauthmodal");
+        if (typeof inner.title !== "undefined")
+            tosection.querySelector("H2").innerHTML =
+                (inner.success ? `<i class="fas fa-check-circle" style='color:var(--clr-ok)'></i> ` : `<i class="fas fa-exclamation-triangle"style='color:var(--clr-er)'></i> `) + inner.title;
+        if (typeof inner.txt !== "undefined") tosection.querySelector(".contents").innerHTML = inner.txt;
+    }
+    function authmodal_close() {
+        if (!openauthmodal) return;
+        if (embedauthmodal) return;
+        openauthmodal = false;
+
+        sections.forEach((item) => item.classList.remove("active"));
+        setTimeout(() => authmodal.classList.remove("authme-active"), 200);
+        removeHash();
+        dbody.classList.remove("openauthmodal");
+    }
+    function removeHash() {
+        let scrollV,
+            scrollH,
+            loc = window.location;
+        //        if ("pushState" in history) history.pushState("", document.title, loc.pathname + loc.search);
+        if ("replaceState" in history) history.replaceState("", document.title, loc.pathname + loc.search);
+        else {
+            scrollV = dbody.scrollTop;
+            scrollH = dbody.scrollLeft;
+            loc.hash = "";
+            dbody.scrollTop = scrollV;
+            dbody.scrollLeft = scrollH;
+        }
+    }
+    function changesections(from, to, ans = {}) {
+        d.getElementById(from).classList.remove("active");
+        d.getElementById(to).classList.add("active");
+        if (typeof ans.title !== "undefined")
+            d.getElementById(to).querySelector("H2").innerHTML =
+                (ans.success ? `<i class="fas fa-check-circle" style='color:var(--clr-ok)'></i> ` : `<i class="fas fa-exclamation-triangle"style='color:var(--clr-er)'></i> `) + ans.title;
+        if (typeof ans.txt !== "undefined") d.getElementById(to).querySelector(".contents").innerHTML = ans.txt;
+    }
+    function getMaxZIndex() {
+        return Math.max(...Array.from(document.querySelectorAll("body *"), (el) => parseFloat(window.getComputedStyle(el).zIndex)).filter((zIndex) => !Number.isNaN(zIndex)), 0);
+    }
+    if (allauthforms) {
+        allauthforms.forEach((els) => {
+            els.querySelectorAll("form").forEach((el) => {
+                el.addEventListener("submit", (ev) => {
+                    let senddata = { _to: els.getAttribute("data-to"), _ch: els.getAttribute("data-ch"), i18n: els.getAttribute("data-i18n") };
+                    if (el.getAttribute("data-req") !== null) {
+                        el.getAttribute("data-req")
+                            .split(",")
+                            .forEach((req) => {
+                                if (el.elements[req].value) el.elements[req].classList.remove("errin");
+                                else el.elements[req].classList.add("errin");
+                            });
+                    }
+                    if (el.getAttribute("data-equal") !== null) {
+                        let equal = el.getAttribute("data-equal").split(",");
+                        let eqsum = null;
+                        equal.forEach((eqel) => {
+                            if (eqsum == null) eqsum = el.elements[eqel].value;
+                            if (eqsum != el.elements[eqel].value) {
+                                equal.forEach((eqel2) => el.elements[eqel2].classList.add("errin"));
+                                return;
+                            }
+                        });
+                    }
+                    switch (el.getAttribute("data-id")) {
+                        case "signinembed":
+                            ev.preventDefault();
+                            if (el.elements["_am"].value && el.elements["_ap"].value) {
+                                getasyncdata(
+                                    "/global--api/auth/v2/signin",
+                                    Object.assign({}, { _am: el.elements["_am"].value, _ap: el.elements["_ap"].value, _ar: el.elements["_ar"].checked ? 1 : 0 }, senddata),
+                                    (ans) => {
+                                        el.reset();
+                                        changesections("authembed", "answerembed", ans);
+                                        document
+                                            .getElementById("answerembed")
+                                            .querySelectorAll("[data-change]")
+                                            .forEach((ael) =>
+                                                ael.addEventListener("click", (evael) => {
+                                                    evael.preventDefault();
+                                                    changesections("answerembed", ael.getAttribute("data-change"));
+                                                })
+                                            );
+                                        if (ans.success) setTimeout(() => location.reload(), 3000);
+                                    }
+                                );
+                            }
+                            break;
+                        case "signupembed":
+                            ev.preventDefault();
+                            if (el.elements["_rm"].value && el.elements["_rp1"].value && el.elements["_rp1"].value == el.elements["_rp2"].value) {
+                                getasyncdata(
+                                    "/global--api/auth/v2/signup",
+                                    Object.assign(
+                                        {},
+                                        {
+                                            _rm: el.elements["_rm"].value,
+                                            _rp1: el.elements["_rp1"].value,
+                                            _rp2: el.elements["_rp2"].value,
+                                            "g-recaptcha-response": el.elements["g-recaptcha-response"].value,
+                                        },
+                                        senddata
+                                    ),
+                                    (ans) => {
+                                        el.reset();
+                                        changesections("signupembed", "answerembed", ans);
+                                    }
+                                );
+                            }
+                            break;
+                        case "recoveryembed":
+                            ev.preventDefault();
+                            if (el.elements["_fm"].value && el.elements["_fp1"].value && el.elements["_fp1"].value == el.elements["_fp2"].value) {
+                                getasyncdata(
+                                    "/global--api/auth/v2/recovery",
+                                    Object.assign(
+                                        {},
+                                        {
+                                            _fm: el.elements["_fm"].value,
+                                            _fp1: el.elements["_fp1"].value,
+                                            _fp2: el.elements["_fp2"].value,
+                                            "g-recaptcha-response": el.elements["g-recaptcha-response"].value,
+                                        },
+                                        senddata
+                                    ),
+                                    (ans) => {
+                                        el.reset();
+                                        changesections("recoveryembed", "answerembed", ans);
+                                    }
+                                );
+                            }
+                            break;
+                        case "signin":
+                            ev.preventDefault();
+                            if (el.elements["_am"].value && el.elements["_ap"].value) {
+                                getasyncdata(
+                                    "/global--api/auth/v2/signin",
+                                    Object.assign(
+                                        {},
+                                        {
+                                            _am: el.elements["_am"].value,
+                                            _ap: el.elements["_ap"].value,
+                                            _ar: el.elements["_ar"].checked ? 1 : 0,
+                                        },
+                                        senddata
+                                    ),
+                                    (ans) => {
+                                        el.reset();
+                                        removeHash();
+                                        authmodal_open("answer-section", ans);
+                                        if (ans.success) {
+                                            // setTimeout(() => location.reload(), 3000);
+                                            setTimeout(() => {
+                                                if (window.location.protocol == "http:") {
+                                                    window.location.href = window.location.href.replace("http:", "https:");
+                                                } else {
+                                                    location.reload();
+                                                }
+                                            }, 3000);
+                                        }
+                                    }
+                                );
+                            }
+                            break;
+                        case "signup":
+                            ev.preventDefault();
+                            if (el.elements["_rm"].value && el.elements["_rp1"].value && el.elements["_rp1"].value == el.elements["_rp2"].value) {
+                                getasyncdata(
+                                    "/global--api/auth/v2/signup",
+                                    Object.assign(
+                                        {},
+                                        {
+                                            _rm: el.elements["_rm"].value,
+                                            _rp1: el.elements["_rp1"].value,
+                                            _rp2: el.elements["_rp2"].value,
+                                            "g-recaptcha-response": el.elements["g-recaptcha-response"].value,
+                                        },
+                                        senddata
+                                    ),
+                                    (ans) => {
+                                        el.reset();
+                                        authmodal_open("answer-section", ans);
+                                    }
+                                );
+                            }
+                            break;
+                        case "recovery":
+                            ev.preventDefault();
+                            if (el.elements["_fm"].value && el.elements["_fp1"].value && el.elements["_fp1"].value == el.elements["_fp2"].value) {
+                                getasyncdata(
+                                    "/global--api/auth/v2/recovery",
+                                    Object.assign(
+                                        {},
+                                        {
+                                            _fm: el.elements["_fm"].value,
+                                            _fp1: el.elements["_fp1"].value,
+                                            _fp2: el.elements["_fp2"].value,
+                                            "g-recaptcha-response": el.elements["g-recaptcha-response"].value,
+                                        },
+                                        senddata
+                                    ),
+                                    (ans) => {
+                                        el.reset();
+                                        authmodal_open("answer-section", ans);
+                                    }
+                                );
+                            }
+                            break;
+                    }
+                });
+            });
+        });
+    }
+    // authmodal.querySelectorAll("form").forEach((el) => {
+    //     el.addEventListener("submit", (ev) => {
+    //         if (el.getAttribute("data-req") !== null) {
+    //             el.getAttribute("data-req")
+    //                 .split(",")
+    //                 .forEach((req) => {
+    //                     if (el.elements[req].value) el.elements[req].classList.remove("errin");
+    //                     else el.elements[req].classList.add("errin");
+    //                 });
+    //         }
+    //         if (el.getAttribute("data-equal") !== null) {
+    //             let equal = el.getAttribute("data-equal").split(",");
+    //             let eqsum = null;
+    //             equal.forEach((eqel) => {
+    //                 if (eqsum == null) eqsum = el.elements[eqel].value;
+    //                 if (eqsum != el.elements[eqel].value) {
+    //                     equal.forEach((eqel2) => el.elements[eqel2].classList.add("errin"));
+    //                     return;
+    //                 }
+    //             });
+    //         }
+    // switch (el.getAttribute("data-id")){
+    // case "signin":
+    //     ev.preventDefault();
+    //     if (el.elements["_am"].value && el.elements["_ap"].value) {
+    //         getasyncdata(
+    //             "/global--api/auth/v2/signin",
+    //             {
+    //                 _am: el.elements["_am"].value,
+    //                 _ap: el.elements["_ap"].value,
+    //                 _ar: el.elements["_ar"].checked ? 1 : 0,
+    //                 _to: authmodal.getAttribute("data-to"),
+    //                 _ch: authmodal.getAttribute("data-ch"),
+    //             },
+    //             (ans) => {
+    //                 el.reset();
+    //                 removeHash();
+    //                 authmodal_open("answer-section", ans);
+    //                 if (ans.success) setTimeout(() => location.reload(), 3000);
+    //             }
+    //         );
+    //     }
+    //     break;
+    // case "signup":
+    //     ev.preventDefault();
+    //     if (el.elements["_rm"].value && el.elements["_rp1"].value && el.elements["_rp1"].value == el.elements["_rp2"].value) {
+    //         getasyncdata(
+    //             "/global--api/auth/v2/signup",
+    //             {
+    //                 _rm: el.elements["_rm"].value,
+    //                 _rp1: el.elements["_rp1"].value,
+    //                 _rp2: el.elements["_rp2"].value,
+    //                 _to: authmodal.getAttribute("data-to"),
+    //                 _ch: authmodal.getAttribute("data-ch"),
+    //                 "g-recaptcha-response": el.elements["g-recaptcha-response"].value,
+    //             },
+    //             (ans) => {
+    //                 el.reset();
+    //                 authmodal_open("answer-section", ans);
+    //             }
+    //         );
+    //     }
+    //     break;
+
+    // case "recovery":
+    //     ev.preventDefault();
+    //     if (el.elements["_fm"].value && el.elements["_fp1"].value && el.elements["_fp1"].value == el.elements["_fp2"].value) {
+    //         getasyncdata(
+    //             "/global--api/auth/v2/recovery",
+    //             {
+    //                 _fm: el.elements["_fm"].value,
+    //                 _fp1: el.elements["_fp1"].value,
+    //                 _fp2: el.elements["_fp2"].value,
+    //                 _to: authmodal.getAttribute("data-to"),
+    //                 _ch: authmodal.getAttribute("data-ch"),
+    //                 "g-recaptcha-response": el.elements["g-recaptcha-response"].value,
+    //             },
+    //             (ans) => {
+    //                 el.reset();
+    //                 authmodal_open("answer-section", ans);
+    //             }
+    //         );
+    //     }
+    //     break;
+    // }
+    //     });
+    // });
+
+    window.addEventListener(
+        "hashchange",
+        () => {
+            let hash = location.hash.slice(1);
+            if (opensections.includes(hash)) authmodal_open(hash + "-section");
+        },
+        false
+    );
+    window.onkeydown = (ev) => {
+        if (openauthmodal && ev.keyCode == 27) authmodal_close();
+    };
+    sections.forEach((item) => (item.onclick = (e) => e.stopPropagation()));
+    authmodal.onclick = () => authmodal_close();
+
+    let hash = location.hash.slice(1);
+    if (opensections.includes(hash)) authmodal_open(hash + "-section");
+
+    if (embedauthmodal) authmodal_open("auth-section");
+
+    let virtsections = [];
+    let datasection = d.querySelectorAll("[data-section]");
+    if (datasection.length) {
+        datasection.forEach((elsection) => {
+            elsection.querySelectorAll("section").forEach((el) => {
+                virtsections.push(el.getAttribute("id"));
+            });
+            elsection.querySelectorAll("A[data-change]").forEach((el) => {
+                el.onclick = (e) => {
+                    e.preventDefault();
+                    if (virtsections.includes(el.getAttribute("data-change"))) {
+                        elsection.querySelectorAll("section").forEach((elall) => elall.classList.remove("active"));
+                        d.getElementById(el.getAttribute("data-change")).classList.add("active");
+                    }
+                };
+            });
+        });
+    }
+});

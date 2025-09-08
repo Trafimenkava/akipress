@@ -1,0 +1,355 @@
+Share = {
+vk: function(purl, ptitle, pimg/*, text*/) {
+	url  = 'http://vk.com/share.php?';
+	url += 'url='          + encodeURIComponent(purl);
+	url += '&title='       + encodeURIComponent(ptitle);
+	//url += '&description=' + encodeURIComponent(text);
+	url += '&image='       + encodeURIComponent(pimg);
+	url += '&noparse=true';
+	Share.popup(url);
+},
+odnoklassniki: function(purl, text) {
+	url  = 'https://connect.ok.ru/offer';
+	url += '?url='    + encodeURIComponent(purl);
+	url += '&title=' + encodeURIComponent(text);
+	Share.popup(url);
+},
+facebook: function(purl, hashtag, pimg/*, ptitle, text*/) {
+	url = 'http://facebook.com/sharer.php?u='+purl;
+	if(typeof hashtag !== "undefined" && hashtag != null) url += '&hashtag='+encodeURIComponent(hashtag);
+	if(typeof pimg !== "undefined" && pimg != null) url += '&picture='+encodeURIComponent(pimg)	
+	Share.popup(url);
+},
+twitter: function(purl, ptitle) {
+	url  = 'https://twitter.com/intent/tweet?';
+	url += 'text='      + encodeURIComponent(ptitle);
+	url += '&url='      + purl;
+	url += '&original_referer=' + purl;
+	Share.popup(url);
+},
+mailru: function(purl, ptitle, pimg, text) {
+ url  = 'http://connect.mail.ru/share?';
+ url += 'url='          + encodeURIComponent(purl);
+ url += '&title='       + encodeURIComponent(ptitle);
+ url += '&description=' + encodeURIComponent(text);
+ url += '&imageurl='    + encodeURIComponent(pimg);
+ Share.popup(url)
+ },
+popup: function(url) {
+	window.open(url,'','toolbar=0,status=0,width=575,height=436');//626
+}
+};
+function aki_news_view_inc(url,pid,nid) {
+  const Http = new XMLHttpRequest();Http.open("GET", url+"?pid="+pid+"&nid="+nid);Http.send();
+  Http.onreadystatechange=function(){
+    if(this.readyState==4 && this.status==200){
+      var newsviewcnt=JSON.parse(Http.responseText);
+      if(document.getElementsByClassName("news_view_cnt_"+pid+"_"+nid).length){
+        for (let i=0; i<document.getElementsByClassName("news_view_cnt_"+pid+"_"+nid).length; i++) {
+          document.getElementsByClassName("news_view_cnt_"+pid+"_"+nid)[i].innerHTML=newsviewcnt.viewcnt;
+        }
+      }
+
+    }
+  }
+}
+$(function() {
+function getShareNewsData(sharedEl) {
+var shareNews = {};
+if(sharedEl.attr("data-shareurl") !== undefined) {
+	shareNews.url = sharedEl.attr("data-shareurl");
+	shareNews.title = sharedEl.attr("data-sharetitle");
+	shareNews.thumb = sharedEl.attr("data-sharethumb");
+	shareNews.hashtag = sharedEl.attr("data-sharehashtag");
+	shareNews.shared_cnt = sharedEl.attr("data-sharecnt");
+} else if(typeof news !== 'undefined' && "url" in news) {
+	shareNews = news;
+}
+return shareNews;
+}
+
+var bodyEl=$("body");
+var shareBtnEl = $(".share-aki-btns");
+var shareFab=$("#aki_share_fab");
+var shareNews = getShareNewsData(shareBtnEl);
+/*var shareNews = typeof news !== 'undefined' && "url" in news ? news : null;
+if(shareNews === null && shareBtnEl.attr("data-shareurl") !== undefined) {
+	shareNews = {};
+	shareNews.url = shareBtnEl.attr("data-shareurl");
+	shareNews.title = shareBtnEl.attr("data-sharetitle");
+	shareNews.thumb = shareBtnEl.attr("data-sharethumb");
+	shareNews.hashtag = shareBtnEl.attr("data-sharehashtag");
+}*/
+if(shareNews !== null && "url" in shareNews) {
+if (!window.ODKL) window.ODKL = {};
+if(!ODKL.updateCount) {
+	ODKL.updateCount = function(el, count) {
+		var okCounterEl = $('.ok-counter-block');
+		if(okCounterEl.length === 0) {
+			okCounterEl = $("#ok_share_counter_block");
+		}
+		var okCount = parseInt(count);
+		okCounterEl.children("SPAN").empty().append(okCount===0?"-":okCount);
+	}
+}
+
+function sendEventToAnalytics(__name,__pref,__suff){
+	if(typeof window.ga !== "undefined"){
+		__name_prefix = __pref!==undefined?__pref:"";
+		__name_suffix = __suff!==undefined?__suff:"";
+		if(__pref===undefined&&__suff===undefined){__name_prefix="social-btn-";}
+		__project = (location.hostname).match(/^(?:www\.)?(.*?)\.(?:org|kg|com|media)$/)[1];
+		__newsid = (location.href).match(/:(\d+)/)[1]
+		__name = __name_prefix+__name+__name_suffix+ '-' + __project;
+		__comment = '#news-' + __newsid; 
+    		ga("send", "event", __name, "click", __comment);
+	}
+}
+function getXMLHttpRequest() {
+return window.XMLHttpRequest ? new XMLHttpRequest() : null;
+}
+function sendShareClickedCnt(url) {
+var xmlhttp = getXMLHttpRequest();
+xmlhttp.onreadystatechange = function() {
+	if(xmlhttp.readyState === XMLHttpRequest.DONE ) {}
+};
+xmlhttp.open("POST", "https://online.akipress.org/counter/?share-counter", true);
+xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
+/*xmlhttp.setRequestHeader("X-Requested-With","XMLHttpRequest");*/
+xmlhttp.send("share_url="+encodeURIComponent(url)+"&from_url="+encodeURIComponent(window.location.href));
+}
+if(window.shareBtnHtml) {
+	$('.share-aki-btns').append(shareBtnHtml);
+}
+$('.facebook_share_btn').click(function() {
+	if(Share.facebook) {
+		var selectedNews = getShareNewsData($(this).parent().parent());
+		sendEventToAnalytics('fb');
+		Share.facebook(selectedNews.url, selectedNews.hashtag, selectedNews.thumb);
+	}
+	return false;
+});
+$('.twitter_share_btn').click(function() {
+if(Share.twitter) {
+	var selectedNews = getShareNewsData($(this).parent().parent());
+	sendEventToAnalytics('tw');
+	Share.twitter(selectedNews.url, selectedNews.title);
+}
+return false;
+});
+var vkShareBtn=$('.vk_share_btn');
+if(vkShareBtn.length) {
+if(window.VK) {
+window.VK.Share = {
+	count: function(index, count) {
+		if(parseInt(index) === 1) {
+			$('#vk_share_counter_block span').empty().append(parseInt(count));
+		}
+	}
+};
+$.getJSON('https://vk.com/share.php?act=count&index=1&url='+shareNews.url+'&format=json&callback=?', function(response) {});
+}
+vkShareBtn.click(function() {
+if(Share.vk) {
+	var selectedNews = getShareNewsData($(this).parent().parent());
+	sendEventToAnalytics('vk');
+	Share.vk(selectedNews.url, selectedNews.title, selectedNews.thumb);
+}
+return false;
+});
+}
+var okShareBtn = $('.ok_share_btn');
+if(okShareBtn.length) {
+$.getJSON('//ok.ru/dk?st.cmd=extLike&uid=odklocs0&ref='+shareNews.url+'&callback=?', function(response) {
+
+});//http://ok.ru/dk?st.cmd=extLike&uid=odklocs0&ref=http://reporter.akipress.org/news:36681
+okShareBtn.click(function() {
+var selectedNews = getShareNewsData($(this).parent().parent());
+sendEventToAnalytics('ok');
+window.open(
+	'https://connect.ok.ru/offer?url='+selectedNews.url,
+	'_blank'
+);
+//Share.odnoklassniki(news.url, news.title);
+return false;
+});
+}
+$("#mobile_wa_report,#mobile_report_on_site,#mobile_telegram_report").click(function() {
+	sendEventToAnalytics($(this).attr('data-event'), '', '-fixed-report-news');
+});
+if($('#fixed_social_mobile_btns').is('div')){
+if($('#static_social_mobile_btns').length == 1 && parseInt($(window).scrollTop()+$(window).height())-48 >= parseInt($('#static_social_mobile_btns').offset().top)){
+	if($('#fixed_social_mobile_btns').is(':visible'))
+		$('#fixed_social_mobile_btns').attr('style', 'display:none !important;');
+}
+$(window).scroll(function(){
+//if($(window).scrollTop() == $(document).height() - $(window).height()){
+if($('#static_social_mobile_btns').length == 1){
+	if(parseInt($(window).scrollTop()+$(window).height())-48 >= parseInt($('#static_social_mobile_btns').offset().top)) {
+		if($('#fixed_social_mobile_btns').is(':visible'))
+			$('#fixed_social_mobile_btns').attr('style', 'display:none !important;');
+	} else if($('#fixed_social_mobile_btns').is(':hidden')){
+		$('#fixed_social_mobile_btns').show();
+	}
+}
+if($('#static_social_mobile_btns').length == 1 && parseInt($(window).scrollTop()) > parseInt($('#static_social_mobile_btns').offset().top)+55) {
+	if($('#fixed_social_mobile_btns').is(':hidden'))
+		$('#fixed_social_mobile_btns').show();
+}
+});
+}
+if($('.share-btns-fixed').is('div') && $(window).width() >= 1103){
+var fixedBtnsWidthWithMargin = 103;
+var controlLeft = parseInt($('.share-btns-control-point').offset().left) - fixedBtnsWidthWithMargin;
+$('.share-btns-fixed').css("left",controlLeft);
+var staticShareBlock = $('.share-aki-btns-static');
+var shouldHideOnTop = staticShareBlock.length > 0;
+if(shouldHideOnTop) {
+var staticShareBtnsDimensions = parseInt(staticShareBlock.offset().top + staticShareBlock.outerHeight());
+if(parseInt($(window).scrollTop()) > staticShareBtnsDimensions) {
+	if($('.share-btns-fixed').hasClass('hidn')) {
+		$('.share-btns-fixed').removeClass('hidn');
+	}
+}
+$(window).scroll(function(){
+	if(parseInt($(window).scrollTop()) > staticShareBtnsDimensions) {
+		if($('.share-btns-fixed').hasClass('hidn')) {
+			$('.share-btns-fixed').removeClass('hidn');
+		}
+	} else {
+		if(!$('.share-btns-fixed').hasClass('hidn')) {
+			$('.share-btns-fixed').addClass('hidn');
+		}
+	}
+});
+} else {
+	$('.share-btns-fixed').removeClass('hidn');
+}
+}
+var shareFabVersion=("fab_v" in shareNews ? shareNews.fab_v : null);
+if(shareBtnEl.attr("data-fabv")!==undefined) {
+shareFabVersion=shareBtnEl.attr("data-fabv");
+}else if(shareFabVersion===null) {
+shareFabVersion='v-2';
+}
+var uiLang = "ru";
+if(shareFab.length===0 && shareNews.url !== undefined) {
+	var htmlEL = $("html");
+	if(htmlEL.attr("lang")!==undefined) {
+		uiLang = htmlEL.attr("lang");
+	} else if(shareBtnEl.attr("data-sharelang")!==undefined) {
+	    uiLang = shareBtnEl.attr("data-sharelang");
+    }
+	var versionContent='';
+	if(shareFabVersion === 'v-1') {
+		versionContent = '<span></span>';
+	} else {
+		versionContent = '<div><svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24"><path d="M15,5.63L20.66,12L15,18.37V15v-1h-1c-3.96,0-7.14,1-9.75,3.09c1.84-4.07,5.11-6.4,9.89-7.1L15,9.86V9V5.63 M14,3v6 C6.22,10.13,3.11,15.33,2,21c2.78-3.97,6.44-6,12-6v6l8-9L14,3L14,3z"></path></svg></div><div>'+(uiLang.includes("ky")?'Бөлүшүү':'Поделиться')+'</div>';
+	}
+
+	bodyEl.append('<button class="share-fab '+shareFabVersion+' aki-visible-xs aki-visible-sm" id="aki_share_fab" data-url="'+shareNews.url+'" data-lang="'+uiLang+'">'+versionContent+'</button>');
+	shareFab = $("#aki_share_fab");
+}
+}//if(typeof news !== 'undefined' && "url" in news)
+
+if(shareFab!==null&&shareFab.length>0) {
+function showSnackBar(msg) {
+	var snackbar = $("#snackbar");
+	snackbar.html(msg).addClass("show");
+	setTimeout(function(){ snackbar.removeClass("show") }, 3500);
+}
+var debug = shareFab.hasClass("debug");
+if("shared_cnt" in shareNews) {
+	var shareCnt = shareNews.shared_cnt;
+	if(shareCnt !== "0") {
+		shareFab.addClass("has-share-cnt");
+		shareFab.append('<div class="share-cnt">'+shareCnt+'</div>');
+	}
+}
+shareFab.click(function(){
+var shareDialogBox=$(".share-dialog-box");
+var shareUrl=$(this).attr("data-url");
+if(shareUrl===undefined) {
+	shareUrl=location.href;
+}
+try {
+    var url = new URL(shareUrl);
+    var searchParams = new URLSearchParams(url.search);
+    if(searchParams.has("place")) {
+        searchParams.set("place", "share-fab");
+    } else {
+        searchParams.append("place", "share-fab");
+    }
+    shareUrl = decodeURIComponent(url.origin+url.pathname+'?'+searchParams.toString());
+} catch (error) {
+    console.log(error);
+}
+var shareLang=$(this).attr("data-lang");
+if(shareLang===undefined) {
+	shareLang=uiLang;
+}
+var shareLabel=uiLang.includes("ky")?"Бөлүшүү":"Поделиться";
+if(shareDialogBox.length===0) {
+	var extraItems='';
+	var extraItems1='';
+	var shareItems='';
+	extraItems='<div class="share-dialog-box-col"><a href="https://www.facebook.com/sharer.php?u='+shareUrl+'" class="share-to-btn" data-socnet="fb"><span class="facebook-base64ic shareicon"></span><span>Facebook</span></a></div>';
+	if(navigator.share) {
+		extraItems1='<div class="share-dialog-box-col more-col"><a href="javascript:;" class="share-to-more"><div class="more-base64ic shareicon"></div><div>'+(shareLang=="ky"?"Башка":"Ещё")+'</div></a></div>';
+	}
+	shareItems='<div class="share-dialog-box-row"><div class="share-dialog-box-col"><a data-href-prefix="whatsapp://send?text=" href="whatsapp://send?text='+shareUrl+'" class="share-to-btn" data-socnet="wa"><span class="whatsapp-base64ic shareicon"></span><span>WhatsApp</span></a></div><div class="share-dialog-box-col"><a data-href-prefix="tg://msg?text=" href="tg://msg?text='+shareUrl+'" class="share-to-btn" data-socnet="tg"><span class="telegram-base64ic shareicon"></span><span>Telegram</span></a></div>'+extraItems+extraItems1+'</div><div class="share-dialog-box-item copy-block"><div class="share-url-textarea"><textarea readonly>'+shareUrl+'</textarea></div><button type="button" class="share-url-copy-btn"><span>'+(shareLang=="ky"?"Көчүрүү":"Скопировать")+'</span></button></div>';
+	//}
+	bodyEl.append('<div class="share-dialog-box'+(debug?' only-icn':'')+'"><div class="share-dialog-box-bg"></div><div class="share-dialog-content"><div class="share-dialog-sheet"><h3><span>'+shareLabel+'</span><a href="javascript:;" class="share-dialog-box-cancel"><span class="share-fab-cancel"></span></a></h3>'+shareItems+'</div></div></div>');
+	shareDialogBox=$(".share-dialog-box");
+} else {
+	/*$(".share-dialog-box-item").children("a").each(function() {
+		$(this).attr("href", $(this).attr("data-href-prefix")+shareUrl);
+	});*/
+	$(".share-url-textarea").children("textarea").val(shareUrl).text(shareUrl);
+}
+bodyEl.addClass("share-dialog-box-collapsed");
+$(".share-dialog-box-bg,.share-dialog-box-cancel,.share-to-btn").off("click").click(function() {
+	if($(this).attr("data-socnet")!==undefined) {
+		sendEventToAnalytics("share-fab-"+$(this).attr("data-socnet"), '', '');
+	}
+	bodyEl.removeClass("share-dialog-box-collapsed");
+});
+$(".share-to-more").off("click").click(function() {
+	navigator.share({
+	title: shareLabel,
+	url: shareUrl
+  });
+	/*.then(() => console.log('Successful share'))
+	.catch((error) => console.log('Error sharing', error));*/
+	sendEventToAnalytics("share-fab-more", '', '');
+});
+$(".share-url-copy-btn").off("click").on("click", function(){
+	var el=$(this);
+	el.prop("disabled", true);
+	var copyTextEl=el.children("span");
+	var copyText=copyTextEl.text();
+	var textareaEl = $(".share-url-textarea").children("textarea")[0];
+	try {
+		textareaEl.select();
+		textareaEl.setSelectionRange(0, 99999);
+		var successful=document.execCommand('copy');
+	} catch(err){successful=false;} finally {
+		textareaEl.blur();
+	}
+	el.addClass("copy-url-msg-"+(successful?"success":"error"));
+	var copiedMsg = shareLang=="ky"?"Көчүрүүлдү!":"Скопировано!";
+	var notCopiedMsg = shareLang=="ky"?"Көчүрүүлгөн ЖОК!":"НЕ Скопировано!";
+	copyTextEl.text(successful?copiedMsg:notCopiedMsg);
+	setTimeout(function(){
+		el.removeClass("copy-url-msg-success copy-url-msg-error");
+		copyTextEl.text(copyText);
+		el.prop("disabled", false);
+	}, 2000);
+	sendEventToAnalytics("share-fab-copylink", '', '');
+});
+// Send share number counter
+sendShareClickedCnt(shareUrl);
+sendEventToAnalytics("Share Floating-"+shareFabVersion, '', '');
+});
+}
+});

@@ -1,0 +1,176 @@
+/**
+ * @param {Object}  loadConfig                     - Объект loadConfig.
+ * @param {string}  loadConfig.elem                - Имя класса новости.
+ * @param {number}  loadConfig.loadUrl             - URL для подгрузки новости.
+ * @param {number}  [loadConfig.news_limit=3]      - Кол-во новостей для подгрузки.(По умолчанию 3)
+ * @param {String}  loadConfig.from                - Источник сайта которое будет отображено в строка поиска.
+ * @returns {void}
+ */
+function loadmore(loadConfig) {
+	const {
+		elem,
+		projectId,
+		loadUrl,
+		news_limit=3,
+		from,
+	} = loadConfig;
+	
+	let newsList             = [];
+	let newsVisited          = [];     
+	let newsLoading          = false;
+	let newsCount            = 1;
+	let newsUrlSuff          = '/?from='+from+'&place=newsload';
+	let loadStart            = false;
+	
+	let htmlElement          = $(elem);
+	
+	newsList.push({
+		news_id:     htmlElement.data("news-id"),
+		news_title:  htmlElement.data("news-title"),
+		urlp:        '/'+location.search
+	});
+	newsVisited[newsList[0].news_id] = 1;
+
+	/*-----------------init section-----------------*/
+	let sc = document.querySelector("script[src='/uiall-js/loadmore.js']");
+	if(sc!=null) {
+		let script = document.createElement("script");
+		script.src = "/uiall-js/afterload.js";    // use this for linked script
+		sc.before(script);
+	}
+	
+	scrollLoadSection = $("<div class='scroll-load-section'></div>");
+	htmlElement.after(scrollLoadSection);
+	/*-----------------end init section-----------------*/
+
+
+	// testing
+	const queryString = window.location.search;
+	const urlParams = new URLSearchParams(queryString);
+
+	// https://example.com/path/to/page?color=purple&size=M&size=L
+	let test_param = "";
+	const param = urlParams.has('mtest') 
+	if(param){
+		test_param = "testing";
+	} 
+    // end testing
+	
+	
+
+	function loadNews(loadUrl){
+		newsLoading = true;
+		let newsIds = [];
+
+		newsList.forEach((news) => newsIds.push(news.news_id));
+		let dataToSend = {pid: projectId, nids: newsIds.join(","),loaded_cnt:newsCount,mtest:test_param}
+		
+		$.ajax({
+			url: loadUrl,
+			method: 'GET',
+			data: dataToSend,
+			dataType: 'json'
+		}).done(data => { 
+			if(data.success) {
+				// scrollLoadSection.find(elem).last().after(data.html);
+				scrollLoadSection.append(data.html);
+				let added_news = $(elem).last();
+				newsList.push({
+					news_id:     data.id, 
+					news_title:  data.title, 
+					urlp:        newsUrlSuff
+				});
+				if(!loadStart) loadStart=true;
+				newsLoadBorder = added_news.offset().top + added_news.outerHeight();
+				newsCount++;
+				newsLoading = false;
+			}
+		});
+	};
+	
+	let currentNewsId = 0;
+	let changePercents = 60;
+	function observePage() {
+		let threshold = screenHeight / 100 * changePercents; 
+		$(elem).each(function() {
+			let news          = $(this);
+			let newsTop       = news.offset().top;
+			let newsBottom    = newsTop + news.outerHeight();
+			let scrollTop     = $(window).scrollTop();
+			let visibleTop    = Math.max(scrollTop, newsTop);
+			let visibleBottom = Math.min(scrollTop + screenHeight, newsBottom);
+			let visibleHeight = visibleBottom - visibleTop;
+
+			if(visibleHeight >= threshold && currentNewsId!=news.data("news-id")) {
+				changePageParams(news.data("news-id"));
+				currentNewsId = news.data("news-id");
+				return false; 
+			}
+		});
+	}
+	
+	function changePageParams(news_id) {
+		const newsObj = newsList.find(news=>{
+			return news.news_id == news_id
+		});
+		changePageTitle(newsObj.news_title);
+		change_url(newsObj.title, '/news:' + newsObj.news_id + newsObj.urlp);
+		if(newsVisited[newsObj.news_id] !== 1) {
+			online_func();
+			if(typeof ga === "function"){
+				ga('send', 'pageview', '/news:' + newsObj.news_id + newsUrlSuff);
+				newsVisited[newsObj.news_id] = 1;
+			}
+			if(typeof gtag === "function") {
+				gtag('set', 'page_path', '/news:' + newsObj.news_id + newsObj.urlp);
+				gtag('event', 'page_view');
+			}
+			aki_news_view_inc("/global--api/news/counter/views.php",projectId,newsObj.news_id);
+			newsVisited[newsObj.news_id]=1;
+		}
+
+	}
+
+	function change_url(page, url) {
+		if (typeof (history.pushState) != 'undefined') {
+		var obj = { Page: page, Url: url };
+		//history.pushState(obj, obj.Page, obj.Url);
+		history.replaceState({}, '', obj.Url);
+		}
+	}
+
+	function changePageTitle(pageTitle){
+		document.title = pageTitle;
+	}
+
+	let screenHeight = window.innerHeight;
+	function scrollEvent() {
+		let scrollTop  = $(window).scrollTop();
+		let fullHeight = scrollTop + screenHeight;
+		let lastElem = $(elem).last();
+		let lastElemBottomPos = lastElem.offset().top + lastElem.outerHeight()-100;
+		
+		if(loadStart) observePage();
+		
+		if(fullHeight >= lastElemBottomPos && newsCount < news_limit && !newsLoading) {
+			loadNews(loadUrl);
+		}
+		lastScrollTop = scrollTop;
+	}
+	
+	function optimizedScroll(callee, timeout) {
+		let timer = null
+		return function perform(...args) {
+		if (timer) return
+	
+		timer = setTimeout(() => {
+			callee(...args)
+	
+			clearTimeout(timer)
+			timer = null
+		}, timeout)
+		}
+	}
+	
+	$(window).scroll(optimizedScroll(scrollEvent,150));
+}
