@@ -111,7 +111,17 @@
 .icon-wrench:before { content: '\e836'; } /* '' */
 .icon-updown-circle:before { content: '\e837'; } /* '' */
 .icon-users:before { content: '\e838'; } /* '' */
-.icon-menu:before { content: '\e839'; } /* '' */
+.icon-menu:before {
+  content: "☰";  
+  font-size: 26px;          /* делаем полосы длиннее */
+  font-weight: bold;        /* пытаемся сделать пожирнее */
+  display: inline-block;
+  line-height: 0.03;
+  vertical-align: middle;
+  letter-spacing: 2px;      /* немного растягиваем полосы */
+  margin-left: 2mm; 
+  margin-right: 2mm;
+}
 .icon-phone:before { content: '\e83a'; } /* '' */
 .icon-search:before { content: '\e83b'; } /* '' */
 .icon-at:before { content: '\e83c'; } /* '' */
